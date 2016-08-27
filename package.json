@@ -1,0 +1,31 @@
+{
+  "name": "gl-camera",
+  "version": "1.0.0",
+  "description": "Simple implementation of an orbit/arcball camera for a single webgl canvas.",
+  "main": "lib/gl-camera.js",
+  "scripts": {
+    "test": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JensGM/gl-camera.git"
+  },
+  "keywords": [
+    "webgl",
+    "camera",
+    "arcball",
+    "orbit"
+  ],
+  "author": "Jens G. Magnus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JensGM/gl-camera/issues"
+  },
+  "homepage": "https://github.com/JensGM/gl-camera#readme",
+  "dependencies": {
+    "gl-matrix": "^2.3.2"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.10.0"
+  }
+}
