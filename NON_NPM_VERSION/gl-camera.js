@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var bindMouseEvents, cameraMouseCapture, canvas, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
+  var addRotationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, getViewMatrix, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -13,11 +13,22 @@ Author: Jens G. Magnus
 
   cameraMouseCapture = false;
 
-  springiness = 100;
+  springiness = 15;
 
-  sensitivity = 0.1;
+  sensitivity = 0.015;
 
-  smoothingThreshold = 0.0001;
+  smoothingThreshold = 0.00001;
+
+
+  /*
+  Rotation
+   */
+
+  limitPitch = true;
+
+  min_pitch = -Math.PI;
+
+  max_pitch = Math.PI;
 
   current_pitch = 0.0;
 
@@ -31,12 +42,26 @@ Author: Jens G. Magnus
 
   target_roll = 0.0;
 
+
+  /*
+  Mouse
+   */
+
+  lastMouseX = 0.0;
+
+  lastMouseY = 0.0;
+
+  currentMouseX = 0.0;
+
+  currentMouseY = 0.0;
+
   updateCameraInterval = null;
 
   bindMouseEvents = function(element) {
     canvas = element;
     canvas.onmousedown = onMouseDown;
     canvas.onmouseup = onMouseUp;
+    canvas.onmouseleave = onMouseUp;
     return canvas.onmousemove = onMouseMove;
   };
 
@@ -68,7 +93,13 @@ Author: Jens G. Magnus
   };
 
   onMouseDown = function(ev) {
-    return cameraMouseCapture = true;
+    var M;
+    cameraMouseCapture = true;
+    M = getCanvasSizeAndRelativeMouseLocation(ev);
+    lastMouseX = M.x;
+    lastMouseY = M.y;
+    currentMouseX = M.x;
+    return currentMouseY = M.y;
   };
 
   onMouseMove = function(ev) {
@@ -77,12 +108,23 @@ Author: Jens G. Magnus
       return;
     }
     M = getCanvasSizeAndRelativeMouseLocation(ev);
-    x = 2.0 * M.x / M.width - 1.0;
-    y = 2.0 * M.y / M.height - 1.0;
-    target_yaw += x * sensitivity;
-    target_pitch += y * sensitivity;
+    currentMouseX = M.x;
+    currentMouseY = M.y;
+    x = currentMouseX - lastMouseX;
+    y = currentMouseY - lastMouseY;
+    addRotationMouseInput(x, y);
+    lastMouseX = currentMouseX;
+    lastMouseY = currentMouseY;
     if (!updateCameraInterval) {
       return updateCameraInterval = setInterval(updateCamera, 15);
+    }
+  };
+
+  addRotationMouseInput = function(x, y) {
+    target_yaw += x * sensitivity;
+    target_pitch += y * sensitivity;
+    if (limitPitch) {
+      return target_pitch = Math.min(Math.max(target_pitch, min_pitch), max_pitch);
     }
   };
 
@@ -93,7 +135,6 @@ Author: Jens G. Magnus
     current_pitch += (target_pitch - current_pitch) * step;
     current_yaw += (target_yaw - current_yaw) * step;
     current_roll += (target_roll - current_roll) * step;
-    console.log("Rotation:", current_pitch, ", ", current_yaw, ", ", current_roll);
     done = true;
     done &= Math.abs(target_pitch - current_pitch) < smoothingThreshold;
     done &= Math.abs(target_yaw - current_yaw) < smoothingThreshold;
@@ -108,9 +149,21 @@ Author: Jens G. Magnus
     return done;
   };
 
+  getViewMatrix = function() {
+    var P, R, Rx, Ry, Rz, V;
+    V = mat4.lookAt(mat4.create(), vec3.fromValues(0, 6, 0), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 0, 1));
+    P = mat4.perspective(mat4.create(), 70, 1.0, 0.01, 12.0);
+    Rz = mat4.fromZRotation(mat4.create(), current_yaw);
+    Ry = mat4.fromYRotation(mat4.create(), current_pitch);
+    Rx = mat4.fromXRotation(mat4.create(), current_roll);
+    R = mat4.multiply(mat4.create(), mat4.multiply(mat4.create(), Rz, Ry), Rx);
+    return mat4.multiply(mat4.create(), mat4.multiply(mat4.create(), P, V), R);
+  };
+
   window.glCamera = {
     bindMouseEvents: bindMouseEvents,
-    setDrawCallback: setDrawCallback
+    setDrawCallback: setDrawCallback,
+    getViewMatrix: getViewMatrix
   };
 
 }).call(this);
