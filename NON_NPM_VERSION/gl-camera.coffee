@@ -4,9 +4,11 @@ Author: Jens G. Magnus
 ###
 
 canvas = null
-drawFunction = null;
+drawFunction = null
 
-springiness = 60
+cameraMouseCapture = off
+
+springiness = 100
 sensitivity = 0.1
 smoothingThreshold = 0.0001
 
@@ -26,8 +28,7 @@ bindMouseEvents = (element) ->
   canvas.onmouseup = onMouseUp
   canvas.onmousemove = onMouseMove
 
-setDrawCallback = (cb) ->
-  drawFunction = cb
+setDrawCallback = (cb) -> drawFunction = cb
 
 getCanvasSizeAndRelativeMouseLocation = (ev) ->
     rect = canvas.getBoundingClientRect()
@@ -41,15 +42,13 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
     y = ev.clientY - top
     { width: width, height: height, x: x, y: y }
 
-onMouseUp = (ev) ->
-  console.log "Up"
-  if (drawFunction) then drawFunction()
+onMouseUp = (ev) -> cameraMouseCapture = off
 
-onMouseDown = (ev) ->
-  console.log "Down"
-  if (drawFunction) then drawFunction()
+onMouseDown = (ev) -> cameraMouseCapture = on
 
 onMouseMove = (ev) ->
+  unless cameraMouseCapture is on then return
+
   M = getCanvasSizeAndRelativeMouseLocation ev
   x = 2.0 * M.x / M.width - 1.0
   y = 2.0 * M.y / M.height - 1.0
@@ -58,8 +57,6 @@ onMouseMove = (ev) ->
   target_pitch += y * sensitivity
   unless updateCameraInterval
     updateCameraInterval = setInterval updateCamera, 15
-
-  if (drawFunction) then drawFunction()
 
 updateCamera = (deltaTime) ->
   deltaTime = 0.015
@@ -79,6 +76,7 @@ updateCamera = (deltaTime) ->
   if done && updateCameraInterval
     clearInterval updateCameraInterval
     updateCameraInterval = null
+  if drawFunction then drawFunction()
   done
 
 window.glCamera =

@@ -5,13 +5,15 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var bindMouseEvents, canvas, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
+  var bindMouseEvents, cameraMouseCapture, canvas, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
 
   canvas = null;
 
   drawFunction = null;
 
-  springiness = 60;
+  cameraMouseCapture = false;
+
+  springiness = 100;
 
   sensitivity = 0.1;
 
@@ -62,31 +64,25 @@ Author: Jens G. Magnus
   };
 
   onMouseUp = function(ev) {
-    console.log("Up");
-    if (drawFunction) {
-      return drawFunction();
-    }
+    return cameraMouseCapture = false;
   };
 
   onMouseDown = function(ev) {
-    console.log("Down");
-    if (drawFunction) {
-      return drawFunction();
-    }
+    return cameraMouseCapture = true;
   };
 
   onMouseMove = function(ev) {
     var M, x, y;
+    if (cameraMouseCapture !== true) {
+      return;
+    }
     M = getCanvasSizeAndRelativeMouseLocation(ev);
     x = 2.0 * M.x / M.width - 1.0;
     y = 2.0 * M.y / M.height - 1.0;
     target_yaw += x * sensitivity;
     target_pitch += y * sensitivity;
     if (!updateCameraInterval) {
-      updateCameraInterval = setInterval(updateCamera, 15);
-    }
-    if (drawFunction) {
-      return drawFunction();
+      return updateCameraInterval = setInterval(updateCamera, 15);
     }
   };
 
@@ -105,6 +101,9 @@ Author: Jens G. Magnus
     if (done && updateCameraInterval) {
       clearInterval(updateCameraInterval);
       updateCameraInterval = null;
+    }
+    if (drawFunction) {
+      drawFunction();
     }
     return done;
   };
