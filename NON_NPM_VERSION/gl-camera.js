@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var addRotationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, getViewMatrix, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
+  var addRotationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, getViewMatrix, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -26,9 +26,9 @@ Author: Jens G. Magnus
 
   limitPitch = true;
 
-  min_pitch = -Math.PI;
+  min_pitch = -Math.PI / 2.0;
 
-  max_pitch = Math.PI;
+  max_pitch = Math.PI / 2.0;
 
   current_pitch = 0.0;
 
@@ -62,7 +62,10 @@ Author: Jens G. Magnus
     canvas.onmousedown = onMouseDown;
     canvas.onmouseup = onMouseUp;
     canvas.onmouseleave = onMouseUp;
-    return canvas.onmousemove = onMouseMove;
+    canvas.onmousemove = onMouseMove;
+    canvas.ontouchstart = onTouchStart;
+    canvas.ontouchend = onTouchEnd;
+    return canvas.ontouchmove = onTouchMove;
   };
 
   setDrawCallback = function(cb) {
@@ -86,6 +89,18 @@ Author: Jens G. Magnus
       x: x,
       y: y
     };
+  };
+
+  onTouchStart = function(ev) {
+    return onMouseDown(ev.touches[0]);
+  };
+
+  onTouchEnd = function(ev) {
+    return onMouseUp(ev.touches[0]);
+  };
+
+  onTouchMove = function(ev) {
+    return onMouseMove(ev.touches[0]);
   };
 
   onMouseUp = function(ev) {

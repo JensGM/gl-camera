@@ -16,8 +16,8 @@ smoothingThreshold = 0.00001
 Rotation
 ###
 limitPitch = true
-min_pitch = -Math.PI
-max_pitch = Math.PI
+min_pitch = -Math.PI / 2.0
+max_pitch = Math.PI / 2.0
 
 current_pitch = 0.0
 current_yaw = 0.0
@@ -43,6 +43,10 @@ bindMouseEvents = (element) ->
   canvas.onmouseup = onMouseUp
   canvas.onmouseleave = onMouseUp
   canvas.onmousemove = onMouseMove
+  canvas.ontouchstart = onTouchStart
+  canvas.ontouchend = onTouchEnd
+  canvas.ontouchmove = onTouchMove
+
 
 setDrawCallback = (cb) -> drawFunction = cb
 
@@ -57,6 +61,10 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
     x = ev.clientX - left
     y = ev.clientY - top
     { width: width, height: height, x: x, y: y }
+
+onTouchStart = (ev) -> onMouseDown ev.touches[0]
+onTouchEnd = (ev) -> onMouseUp ev.touches[0]
+onTouchMove = (ev) -> onMouseMove ev.touches[0]
 
 onMouseUp = (ev) -> cameraMouseCapture = off
 
