@@ -8,7 +8,7 @@ drawFunction = null;
 
 springiness = 60
 sensitivity = 0.1
-smoothingThreshold = 0.001
+smoothingThreshold = 0.0001
 
 current_pitch = 0.0
 current_yaw = 0.0
