@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var bindMouseEvents, canvas, current_pitch, current_roll, current_yaw, drawFunction, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
+  var bindMouseEvents, canvas, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, onMouseDown, onMouseMove, onMouseUp, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -42,6 +42,25 @@ Author: Jens G. Magnus
     return drawFunction = cb;
   };
 
+  getCanvasSizeAndRelativeMouseLocation = function(ev) {
+    var bottom, height, left, rect, right, top, width, x, y;
+    rect = canvas.getBoundingClientRect();
+    left = rect.left + window.pageXOffset;
+    right = rect.right + window.pageXOffset;
+    top = rect.top + window.pageYOffset;
+    bottom = rect.bottom + window.pageYOffset;
+    width = right - left;
+    height = bottom - top;
+    x = ev.clientX - left;
+    y = ev.clientY - top;
+    return {
+      width: width,
+      height: height,
+      x: x,
+      y: y
+    };
+  };
+
   onMouseUp = function(ev) {
     console.log("Up");
     if (drawFunction) {
@@ -57,18 +76,10 @@ Author: Jens G. Magnus
   };
 
   onMouseMove = function(ev) {
-    var bottom, canvasX, canvasY, height, left, rect, right, top, width, x, y;
-    rect = canvas.getBoundingClientRect();
-    left = rect.left + window.pageXOffset;
-    right = rect.right + window.pageXOffset;
-    top = rect.top + window.pageYOffset;
-    bottom = rect.bottom + window.pageYOffset;
-    width = right - left;
-    height = bottom - top;
-    canvasX = ev.clientX - left;
-    canvasY = ev.clientY - top;
-    x = 2.0 * canvasX / width - 1.0;
-    y = 2.0 * canvasY / height - 1.0;
+    var M, x, y;
+    M = getCanvasSizeAndRelativeMouseLocation(ev);
+    x = 2.0 * M.x / M.width - 1.0;
+    y = 2.0 * M.y / M.height - 1.0;
     target_yaw += x * sensitivity;
     target_pitch += y * sensitivity;
     if (!updateCameraInterval) {

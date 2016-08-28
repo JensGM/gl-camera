@@ -29,6 +29,18 @@ bindMouseEvents = (element) ->
 setDrawCallback = (cb) ->
   drawFunction = cb
 
+getCanvasSizeAndRelativeMouseLocation = (ev) ->
+    rect = canvas.getBoundingClientRect()
+    left = rect.left + window.pageXOffset
+    right = rect.right + window.pageXOffset
+    top = rect.top + window.pageYOffset
+    bottom = rect.bottom + window.pageYOffset
+    width = right - left
+    height = bottom - top
+    x = ev.clientX - left
+    y = ev.clientY - top
+    { width: width, height: height, x: x, y: y }
+
 onMouseUp = (ev) ->
   console.log "Up"
   if (drawFunction) then drawFunction()
@@ -38,17 +50,9 @@ onMouseDown = (ev) ->
   if (drawFunction) then drawFunction()
 
 onMouseMove = (ev) ->
-  rect = canvas.getBoundingClientRect()
-  left = rect.left + window.pageXOffset
-  right = rect.right + window.pageXOffset
-  top = rect.top + window.pageYOffset
-  bottom = rect.bottom + window.pageYOffset
-  width = right - left
-  height = bottom - top
-  canvasX = ev.clientX - left
-  canvasY = ev.clientY - top
-  x = 2.0 * canvasX / width - 1.0
-  y = 2.0 * canvasY / height - 1.0
+  M = getCanvasSizeAndRelativeMouseLocation ev
+  x = 2.0 * M.x / M.width - 1.0
+  y = 2.0 * M.y / M.height - 1.0
 
   target_yaw += x * sensitivity
   target_pitch += y * sensitivity
