@@ -47,7 +47,6 @@ bindMouseEvents = (element) ->
   canvas.ontouchend = onTouchEnd
   canvas.ontouchmove = onTouchMove
 
-
 setDrawCallback = (cb) -> drawFunction = cb
 
 getCanvasSizeAndRelativeMouseLocation = (ev) ->
@@ -122,6 +121,13 @@ getViewMatrix = () ->
   Ry = mat4.fromYRotation mat4.create(), current_pitch
   Rx = mat4.fromXRotation mat4.create(), current_roll
   R = mat4.multiply mat4.create(), (mat4.multiply mat4.create(), Rz, Ry), Rx
+
+  qy = quat.create()
+  qp = quat.create()
+  quat.rotateZ qy, qy, current_yaw
+  quat.rotateX qp, qp, -current_pitch
+  qc = quat.multiply quat.create(), qp, qy
+  mat4.fromQuat R, qc
   mat4.multiply mat4.create(), (mat4.multiply mat4.create(), P, V), R
 
 window.glCamera =
