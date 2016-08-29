@@ -61,9 +61,15 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
     y = ev.clientY - top
     { width: width, height: height, x: x, y: y }
 
-onTouchStart = (ev) -> onMouseDown ev.touches[0]
-onTouchEnd = (ev) -> onMouseUp ev.touches[0]
-onTouchMove = (ev) -> onMouseMove ev.touches[0]
+onTouchStart = (ev) ->
+  ev.preventDefault()
+  onMouseDown ev.touches[0]
+onTouchEnd = (ev) ->
+  ev.preventDefault()
+  onMouseUp ev.touches[0]
+onTouchMove = (ev) ->
+  ev.preventDefault()
+  onMouseMove ev.touches[0]
 
 onMouseUp = (ev) -> cameraMouseCapture = off
 
@@ -114,20 +120,16 @@ updateCamera = (deltaTime) ->
   done
 
 getViewMatrix = () ->
+  aspectRatio = canvas.width / canvas.height
   V = mat4.lookAt mat4.create(), vec3.fromValues(0,6,0), vec3.fromValues(0,0,0), vec3.fromValues(0,0,1)
-  P = mat4.perspective mat4.create(), 70, 1.0, 0.01, 12.0
-
-  Rz = mat4.fromZRotation mat4.create(), current_yaw
-  Ry = mat4.fromYRotation mat4.create(), current_pitch
-  Rx = mat4.fromXRotation mat4.create(), current_roll
-  R = mat4.multiply mat4.create(), (mat4.multiply mat4.create(), Rz, Ry), Rx
+  P = mat4.perspective mat4.create(), 70, aspectRatio, 0.01, 12.0
 
   qy = quat.create()
   qp = quat.create()
   quat.rotateZ qy, qy, current_yaw
   quat.rotateX qp, qp, -current_pitch
   qc = quat.multiply quat.create(), qp, qy
-  mat4.fromQuat R, qc
+  R = mat4.fromQuat mat4.create(), qc
   mat4.multiply mat4.create(), (mat4.multiply mat4.create(), P, V), R
 
 window.glCamera =

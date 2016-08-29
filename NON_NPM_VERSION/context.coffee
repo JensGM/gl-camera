@@ -7,6 +7,9 @@ vertexPositionAttribute = null
 
 init = () ->
   canvas = document.getElementById "glcanvas"
+  canvas.width = document.body.clientWidth
+  canvas.height = document.body.clientHeight
+  document.body.onresize = onResize
   initWebGL()
   if gl
     glCamera.bindMouseEvents canvas
@@ -14,7 +17,7 @@ init = () ->
     initBuffers()
     initShaders()
 
-    gl.clearColor 1.0, 1.0, 1.0, 1.0
+    gl.clearColor 0.0, 0.0, 0.0, 1.0
     gl.clearDepth 1.0
     gl.clear gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
 
@@ -31,8 +34,14 @@ initWebGL = () ->
         alert "Unable to initialize WebGL. Your browser may not suppert it."
         gl = null
 
+onResize = () ->
+  canvas.width = document.body.clientWidth
+  canvas.height = document.body.clientHeight
+  gl.viewport 0, 0, canvas.width, canvas.height
+  drawScene()
+
 drawScene = () ->
-  gl.clearColor 1.0, 1.0, 1.0, 1.0
+  gl.clearColor 0.0, 0.0, 0.0, 1.0
   gl.clearDepth 1.0
   gl.clear gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
   gl.enable gl.CULL_FACE
