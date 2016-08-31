@@ -60,7 +60,7 @@
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
     gl.useProgram(shaderProgram);
-    gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "MVP"), false, glCamera.getViewMatrix());
+    gl.uniformMatrix4fv(gl.getUniformLocation(shaderProgram, "MVP"), false, glCamera.getCameraMatrix());
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);

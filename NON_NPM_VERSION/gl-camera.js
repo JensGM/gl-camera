@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var addRotationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_pitch, current_roll, current_yaw, drawFunction, getCanvasSizeAndRelativeMouseLocation, getViewMatrix, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, sensitivity, setDrawCallback, smoothingThreshold, springiness, target_pitch, target_roll, target_yaw, updateCamera, updateCameraInterval;
+  var LEFT_MOUSE_BUTTON, MIDDLE_MOUSE_BUTTON, RIGHT_MOUSE_BUTTON, addRotationMouseInput, addTranslationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_distance, current_pitch, current_position, current_roll, current_yaw, distance_sensitivity, distance_springiness, drawFunction, getCameraMatrix, getCanvasSizeAndRelativeMouseLocation, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, onWheel, rotation_matrix, rotation_sensitivity, rotation_springiness, setDrawCallback, smoothingThreshold, target_distance, target_pitch, target_position, target_roll, target_yaw, translation_sensitivity, translation_springiness, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -13,16 +13,42 @@ Author: Jens G. Magnus
 
   cameraMouseCapture = false;
 
-  springiness = 15;
-
-  sensitivity = 0.015;
-
   smoothingThreshold = 0.00001;
+
+
+  /*
+  Distance
+   */
+
+  distance_springiness = 15;
+
+  distance_sensitivity = 0.015;
+
+  current_distance = 6.0;
+
+  target_distance = 6.0;
+
+
+  /*
+  Translation
+   */
+
+  translation_springiness = 15;
+
+  translation_sensitivity = 0.015;
+
+  current_position = vec3.create();
+
+  target_position = vec3.create();
 
 
   /*
   Rotation
    */
+
+  rotation_springiness = 15;
+
+  rotation_sensitivity = 0.015;
 
   limitPitch = true;
 
@@ -42,10 +68,18 @@ Author: Jens G. Magnus
 
   target_roll = 0.0;
 
+  rotation_matrix = mat4.create();
+
 
   /*
   Mouse
    */
+
+  LEFT_MOUSE_BUTTON = 0;
+
+  MIDDLE_MOUSE_BUTTON = 1;
+
+  RIGHT_MOUSE_BUTTON = 2;
 
   lastMouseX = 0.0;
 
@@ -63,9 +97,14 @@ Author: Jens G. Magnus
     canvas.onmouseup = onMouseUp;
     canvas.onmouseleave = onMouseUp;
     canvas.onmousemove = onMouseMove;
+    canvas.onwheel = onWheel;
     canvas.ontouchstart = onTouchStart;
     canvas.ontouchend = onTouchEnd;
-    return canvas.ontouchmove = onTouchMove;
+    canvas.ontouchmove = onTouchMove;
+    return canvas.oncontextmenu = function(ev) {
+      ev.preventDefault();
+      return false;
+    };
   };
 
   setDrawCallback = function(cb) {
@@ -106,12 +145,22 @@ Author: Jens G. Magnus
     return onMouseMove(ev.touches[0]);
   };
 
+  onWheel = function(ev) {
+    ev.preventDefault();
+    target_distance += ev.deltaY * distance_sensitivity;
+    target_distance = Math.max(target_distance, 0.0);
+    if (!updateCameraInterval) {
+      return updateCameraInterval = setInterval(updateCamera, 15);
+    }
+  };
+
   onMouseUp = function(ev) {
     return cameraMouseCapture = false;
   };
 
   onMouseDown = function(ev) {
     var M;
+    ev.preventDefault();
     cameraMouseCapture = true;
     M = getCanvasSizeAndRelativeMouseLocation(ev);
     lastMouseX = M.x;
@@ -122,6 +171,7 @@ Author: Jens G. Magnus
 
   onMouseMove = function(ev) {
     var M, x, y;
+    ev.preventDefault();
     if (cameraMouseCapture !== true) {
       return;
     }
@@ -130,7 +180,13 @@ Author: Jens G. Magnus
     currentMouseY = M.y;
     x = currentMouseX - lastMouseX;
     y = currentMouseY - lastMouseY;
-    addRotationMouseInput(x, y);
+    switch (ev.button) {
+      case LEFT_MOUSE_BUTTON:
+        addRotationMouseInput(x, y);
+        break;
+      case RIGHT_MOUSE_BUTTON:
+        addTranslationMouseInput(x, y);
+    }
     lastMouseX = currentMouseX;
     lastMouseY = currentMouseY;
     if (!updateCameraInterval) {
@@ -139,24 +195,52 @@ Author: Jens G. Magnus
   };
 
   addRotationMouseInput = function(x, y) {
-    target_yaw += x * sensitivity;
-    target_pitch += y * sensitivity;
+    target_yaw += x * rotation_sensitivity;
+    target_pitch += y * rotation_sensitivity;
     if (limitPitch) {
       return target_pitch = Math.min(Math.max(target_pitch, min_pitch), max_pitch);
     }
   };
 
+  addTranslationMouseInput = function(x, y) {
+    var deltaPosition, inverse_rotation_matrix;
+    deltaPosition = vec3.fromValues(x * translation_sensitivity, 0.0, y * translation_sensitivity);
+    inverse_rotation_matrix = mat4.invert(mat4.create(), rotation_matrix);
+    deltaPosition = vec3.transformMat4(vec3.create(), deltaPosition, rotation_matrix);
+    return vec3.add(target_position, target_position, deltaPosition);
+  };
+
   updateCamera = function(deltaTime) {
-    var done, step;
+    var delta_position, distance_step, done, qc, qp, qy, rotation_step, translation_step, updateDistance, updateRotation, updateTranslation;
     deltaTime = 0.015;
-    step = 1 - Math.exp(Math.log(0.5) * springiness * deltaTime);
-    current_pitch += (target_pitch - current_pitch) * step;
-    current_yaw += (target_yaw - current_yaw) * step;
-    current_roll += (target_roll - current_roll) * step;
-    done = true;
-    done &= Math.abs(target_pitch - current_pitch) < smoothingThreshold;
-    done &= Math.abs(target_yaw - current_yaw) < smoothingThreshold;
-    done &= Math.abs(target_roll - current_roll) < smoothingThreshold;
+    updateRotation = false;
+    updateRotation |= Math.abs(target_pitch - current_pitch) > smoothingThreshold;
+    updateRotation |= Math.abs(target_yaw - current_yaw) > smoothingThreshold;
+    updateRotation |= Math.abs(target_roll - current_roll) > smoothingThreshold;
+    if (updateRotation) {
+      rotation_step = 1 - Math.exp(Math.log(0.5) * rotation_springiness * deltaTime);
+      current_pitch += (target_pitch - current_pitch) * rotation_step;
+      current_yaw += (target_yaw - current_yaw) * rotation_step;
+      current_roll += (target_roll - current_roll) * rotation_step;
+      qy = quat.create();
+      qp = quat.create();
+      quat.rotateZ(qy, qy, -current_yaw);
+      quat.rotateX(qp, qp, current_pitch);
+      qc = quat.multiply(quat.create(), qy, qp);
+      mat4.fromQuat(rotation_matrix, qc);
+    }
+    updateTranslation = vec3.squaredDistance(target_position, current_position) > smoothingThreshold;
+    if (updateTranslation) {
+      translation_step = 1 - Math.exp(Math.log(0.5) * translation_springiness * deltaTime);
+      delta_position = vec3.subtract(vec3.create(), target_position, current_position);
+      vec3.scaleAndAdd(current_position, current_position, delta_position, translation_step);
+    }
+    updateDistance = Math.abs(target_distance - current_distance) > smoothingThreshold;
+    if (updateDistance) {
+      distance_step = 1 - Math.exp(Math.log(0.5) * distance_springiness * deltaTime);
+      current_distance += (target_distance - current_distance) * distance_step;
+    }
+    done = !updateRotation && !updateTranslation && !updateDistance;
     if (done && updateCameraInterval) {
       clearInterval(updateCameraInterval);
       updateCameraInterval = null;
@@ -167,24 +251,23 @@ Author: Jens G. Magnus
     return done;
   };
 
-  getViewMatrix = function() {
-    var P, R, V, aspectRatio, qc, qp, qy;
+  getCameraMatrix = function() {
+    var P, V, aspectRatio, center, eye, up;
     aspectRatio = canvas.width / canvas.height;
-    V = mat4.lookAt(mat4.create(), vec3.fromValues(0, 6, 0), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 0, 1));
-    P = mat4.perspective(mat4.create(), 70, aspectRatio, 0.01, 12.0);
-    qy = quat.create();
-    qp = quat.create();
-    quat.rotateZ(qy, qy, current_yaw);
-    quat.rotateX(qp, qp, -current_pitch);
-    qc = quat.multiply(quat.create(), qp, qy);
-    R = mat4.fromQuat(mat4.create(), qc);
-    return mat4.multiply(mat4.create(), mat4.multiply(mat4.create(), P, V), R);
+    eye = vec3.transformMat4(vec3.create(), vec3.fromValues(0, current_distance, 0), rotation_matrix);
+    vec3.add(eye, eye, current_position);
+    center = vec3.fromValues(0, 0, 0);
+    vec3.add(center, center, current_position);
+    up = vec3.transformMat4(vec3.create(), vec3.fromValues(0, 0, 1), rotation_matrix);
+    V = mat4.lookAt(mat4.create(), eye, center, up);
+    P = mat4.perspective(mat4.create(), 70, aspectRatio, 0.01, 100.0 + target_distance);
+    return mat4.multiply(mat4.create(), P, V);
   };
 
   window.glCamera = {
     bindMouseEvents: bindMouseEvents,
     setDrawCallback: setDrawCallback,
-    getViewMatrix: getViewMatrix
+    getCameraMatrix: getCameraMatrix
   };
 
 }).call(this);
