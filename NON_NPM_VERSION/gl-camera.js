@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var LEFT_MOUSE_BUTTON, MIDDLE_MOUSE_BUTTON, RIGHT_MOUSE_BUTTON, addRotationMouseInput, addTranslationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, currentTouch1, currentTouch2, current_distance, current_pitch, current_position, current_roll, current_yaw, distance_sensitivity, distance_springiness, drawFunction, getCameraMatrix, getCanvasSizeAndRelativeMouseLocation, lastMouseX, lastMouseY, lastTouch1, lastTouch2, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, onWheel, rotation_matrix, rotation_sensitivity, rotation_springiness, setDrawCallback, smoothingThreshold, target_distance, target_pitch, target_position, target_roll, target_yaw, translation_sensitivity, translation_springiness, updateCamera, updateCameraInterval;
+  var LEFT_MOUSE_BUTTON, MIDDLE_MOUSE_BUTTON, RIGHT_MOUSE_BUTTON, addRotationInput, addTranslationInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, currentTouch1, currentTouch2, current_distance, current_pitch, current_position, current_roll, current_yaw, distance_sensitivity, distance_springiness, drawFunction, getCameraMatrix, getCanvasSizeAndRelativeMouseLocation, lastMouseX, lastMouseY, lastTouch1, lastTouch2, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, onWheel, rotation_matrix, rotation_sensitivity, rotation_springiness, setDrawCallback, smoothingThreshold, target_distance, target_pitch, target_position, target_roll, target_yaw, translation_sensitivity, translation_springiness, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -144,32 +144,55 @@ Author: Jens G. Magnus
   };
 
   onTouchStart = function(ev) {
-    console.log("ASDASD");
+    var M, M1, M2;
     ev.preventDefault();
     if (ev.touches.length === 1) {
-      return onMouseDown(ev.touches[0]);
+      M = getCanvasSizeAndRelativeMouseLocation(ev.touches[0]);
+      vec2.set(lastTouch1, M.x, M.y);
+      return vec2.copy(currentTouch1, lastTouch1);
+    } else {
+      M1 = getCanvasSizeAndRelativeMouseLocation(ev.touches[0]);
+      M2 = getCanvasSizeAndRelativeMouseLocation(ev.touches[1]);
+      vec2.set(lastTouch1, M1.x, M1.y);
+      vec2.set(lastTouch2, M2.x, M2.y);
+      vec2.copy(currentTouch1, lastTouch1);
+      return vec2.copy(currentTouch2, lastTouch2);
     }
   };
 
   onTouchEnd = function(ev) {
-    console.log("ASDASD");
-    ev.preventDefault();
-    if (ev.touches.length === 1) {
-      return onMouseUp(ev.touches[0]);
-    }
+    return ev.preventDefault();
   };
 
   onTouchMove = function(ev) {
-    var deltaTouchDistance;
-    console.log("ASDASD");
+    var M, M1, M2, averageCurrentTouch, averageLastTouch, averageMovement, deltaTouch, deltaTouchDistance;
     ev.preventDefault();
     if (ev.touches.length === 1) {
-      onMouseMove(ev.touches[0]);
+      M = getCanvasSizeAndRelativeMouseLocation(ev.touches[0]);
+      vec2.set(currentTouch1, M.x, M.y);
+      deltaTouch = vec2.subtract(vec2.create(), currentTouch1, lastTouch1);
+      addRotationInput(deltaTouch[0], deltaTouch[1]);
+      vec2.copy(lastTouch1, currentTouch1);
+      if (!updateCameraInterval) {
+        updateCameraInterval = setInterval(updateCamera, 15);
+      }
     }
     if (ev.touches.length >= 2) {
+      M1 = getCanvasSizeAndRelativeMouseLocation(ev.touches[0]);
+      M2 = getCanvasSizeAndRelativeMouseLocation(ev.touches[1]);
+      vec2.set(currentTouch1, M1.x, M1.y);
+      vec2.set(currentTouch2, M2.x, M2.y);
       deltaTouchDistance = vec2.distance(lastTouch1, lastTouch2) - vec2.distance(currentTouch1, currentTouch2);
-      target_distance += deltaTouchDistance * distance_sensitivity;
+      target_distance += deltaTouchDistance * distance_sensitivity * 2.0;
       target_distance = Math.max(target_distance, 0.0);
+      averageLastTouch = vec2.add(vec2.create(), lastTouch1, lastTouch2);
+      averageCurrentTouch = vec2.add(vec2.create(), currentTouch1, currentTouch2);
+      vec2.scale(averageLastTouch, averageLastTouch, 0.5);
+      vec2.scale(averageCurrentTouch, averageCurrentTouch, 0.5);
+      averageMovement = vec2.subtract(vec2.create(), averageCurrentTouch, averageLastTouch);
+      addTranslationInput(averageMovement[0], averageMovement[1]);
+      vec2.copy(lastTouch1, currentTouch1);
+      vec2.copy(lastTouch2, currentTouch2);
       if (!updateCameraInterval) {
         return updateCameraInterval = setInterval(updateCamera, 15);
       }
@@ -213,10 +236,10 @@ Author: Jens G. Magnus
     y = currentMouseY - lastMouseY;
     switch (ev.button) {
       case LEFT_MOUSE_BUTTON:
-        addRotationMouseInput(x, y);
+        addRotationInput(x, y);
         break;
       case RIGHT_MOUSE_BUTTON:
-        addTranslationMouseInput(x, y);
+        addTranslationInput(x, y);
     }
     lastMouseX = currentMouseX;
     lastMouseY = currentMouseY;
@@ -225,7 +248,7 @@ Author: Jens G. Magnus
     }
   };
 
-  addRotationMouseInput = function(x, y) {
+  addRotationInput = function(x, y) {
     target_yaw += x * rotation_sensitivity;
     target_pitch += y * rotation_sensitivity;
     if (limitPitch) {
@@ -233,7 +256,7 @@ Author: Jens G. Magnus
     }
   };
 
-  addTranslationMouseInput = function(x, y) {
+  addTranslationInput = function(x, y) {
     var deltaPosition, inverse_rotation_matrix;
     deltaPosition = vec3.fromValues(x * translation_sensitivity, 0.0, y * translation_sensitivity);
     inverse_rotation_matrix = mat4.invert(mat4.create(), rotation_matrix);

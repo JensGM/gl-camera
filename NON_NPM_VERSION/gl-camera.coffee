@@ -96,24 +96,53 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
     { width: width, height: height, x: x, y: y }
 
 onTouchStart = (ev) ->
-  console.log "ASDASD"
   ev.preventDefault()
   if ev.touches.length == 1
-      onMouseDown ev.touches[0]
-onTouchEnd = (ev) ->
-  console.log "ASDASD"
-  ev.preventDefault()
-  if ev.touches.length == 1
-      onMouseUp ev.touches[0]
+      M = getCanvasSizeAndRelativeMouseLocation ev.touches[0]
+      vec2.set lastTouch1, M.x, M.y
+      vec2.copy currentTouch1, lastTouch1
+  else
+      M1 = getCanvasSizeAndRelativeMouseLocation ev.touches[0]
+      M2 = getCanvasSizeAndRelativeMouseLocation ev.touches[1]
+      vec2.set lastTouch1, M1.x, M1.y
+      vec2.set lastTouch2, M2.x, M2.y
+      vec2.copy currentTouch1, lastTouch1
+      vec2.copy currentTouch2, lastTouch2
+
+onTouchEnd = (ev) -> ev.preventDefault()
+
 onTouchMove = (ev) ->
-  console.log "ASDASD"
   ev.preventDefault()
   if ev.touches.length == 1
-      onMouseMove ev.touches[0]
+    M = getCanvasSizeAndRelativeMouseLocation ev.touches[0]
+    vec2.set currentTouch1, M.x, M.y
+    deltaTouch = vec2.subtract vec2.create(), currentTouch1, lastTouch1
+    addRotationInput deltaTouch[0], deltaTouch[1]
+    vec2.copy lastTouch1, currentTouch1
+    unless updateCameraInterval
+      updateCameraInterval = setInterval updateCamera, 15
+
   if ev.touches.length >= 2
+    M1 = getCanvasSizeAndRelativeMouseLocation ev.touches[0]
+    M2 = getCanvasSizeAndRelativeMouseLocation ev.touches[1]
+    vec2.set currentTouch1, M1.x, M1.y
+    vec2.set currentTouch2, M2.x, M2.y
+
+    # Distane
     deltaTouchDistance  = vec2.distance(lastTouch1, lastTouch2) - vec2.distance(currentTouch1, currentTouch2)
-    target_distance +=  deltaTouchDistance * distance_sensitivity
+    target_distance +=  deltaTouchDistance * distance_sensitivity * 2.0
     target_distance = Math.max target_distance, 0.0
+
+    # Translation
+    averageLastTouch = vec2.add vec2.create(), lastTouch1, lastTouch2
+    averageCurrentTouch = vec2.add vec2.create(), currentTouch1, currentTouch2
+    vec2.scale averageLastTouch, averageLastTouch, 0.5
+    vec2.scale averageCurrentTouch, averageCurrentTouch, 0.5
+    averageMovement = vec2.subtract vec2.create(), averageCurrentTouch, averageLastTouch
+    addTranslationInput averageMovement[0], averageMovement[1]
+
+    vec2.copy lastTouch1, currentTouch1
+    vec2.copy lastTouch2, currentTouch2
     unless updateCameraInterval
       updateCameraInterval = setInterval updateCamera, 15
 
@@ -144,20 +173,20 @@ onMouseMove = (ev) ->
   x = currentMouseX - lastMouseX
   y = currentMouseY - lastMouseY
   switch ev.button
-      when LEFT_MOUSE_BUTTON then addRotationMouseInput x, y
-      when RIGHT_MOUSE_BUTTON then addTranslationMouseInput x, y
+      when LEFT_MOUSE_BUTTON then addRotationInput x, y
+      when RIGHT_MOUSE_BUTTON then addTranslationInput x, y
   lastMouseX = currentMouseX
   lastMouseY = currentMouseY
   unless updateCameraInterval
     updateCameraInterval = setInterval updateCamera, 15
 
-addRotationMouseInput = (x, y) ->
+addRotationInput = (x, y) ->
   target_yaw += x * rotation_sensitivity
   target_pitch += y * rotation_sensitivity
   if limitPitch
      target_pitch = Math.min(Math.max(target_pitch, min_pitch), max_pitch)
 
-addTranslationMouseInput = (x, y) ->
+addTranslationInput = (x, y) ->
     deltaPosition = vec3.fromValues x * translation_sensitivity, 0.0, y * translation_sensitivity
     inverse_rotation_matrix = mat4.invert mat4.create(), rotation_matrix
     deltaPosition = vec3.transformMat4 vec3.create(), deltaPosition, rotation_matrix
