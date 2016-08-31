@@ -89,13 +89,16 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
 
 onTouchStart = (ev) ->
   ev.preventDefault()
-  onMouseDown ev.touches[0]
+  if ev.touches.length == 1
+      onMouseDown ev.touches[0]
 onTouchEnd = (ev) ->
   ev.preventDefault()
-  onMouseUp ev.touches[0]
+  if ev.touches.length == 1
+      onMouseUp ev.touches[0]
 onTouchMove = (ev) ->
   ev.preventDefault()
-  onMouseMove ev.touches[0]
+  if ev.touches.length == 1
+      onMouseMove ev.touches[0]
 
 onWheel = (ev) ->
     ev.preventDefault()

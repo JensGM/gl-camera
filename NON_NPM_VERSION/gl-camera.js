@@ -132,17 +132,23 @@ Author: Jens G. Magnus
 
   onTouchStart = function(ev) {
     ev.preventDefault();
-    return onMouseDown(ev.touches[0]);
+    if (ev.touches.length === 1) {
+      return onMouseDown(ev.touches[0]);
+    }
   };
 
   onTouchEnd = function(ev) {
     ev.preventDefault();
-    return onMouseUp(ev.touches[0]);
+    if (ev.touches.length === 1) {
+      return onMouseUp(ev.touches[0]);
+    }
   };
 
   onTouchMove = function(ev) {
     ev.preventDefault();
-    return onMouseMove(ev.touches[0]);
+    if (ev.touches.length === 1) {
+      return onMouseMove(ev.touches[0]);
+    }
   };
 
   onWheel = function(ev) {
