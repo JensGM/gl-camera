@@ -13,7 +13,7 @@ smoothingThreshold = 0.00001
 ###
 Distance
 ###
-distance_springiness = 15
+distance_springiness = 20
 distance_sensitivity = 0.015
 current_distance = 6.0
 target_distance = 6.0

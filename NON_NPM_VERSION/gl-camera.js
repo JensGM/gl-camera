@@ -20,7 +20,7 @@ Author: Jens G. Magnus
   Distance
    */
 
-  distance_springiness = 15;
+  distance_springiness = 20;
 
   distance_sensitivity = 0.015;
 
