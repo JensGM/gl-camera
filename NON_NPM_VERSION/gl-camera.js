@@ -5,7 +5,7 @@ Author: Jens G. Magnus
  */
 
 (function() {
-  var LEFT_MOUSE_BUTTON, MIDDLE_MOUSE_BUTTON, RIGHT_MOUSE_BUTTON, addRotationMouseInput, addTranslationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, current_distance, current_pitch, current_position, current_roll, current_yaw, distance_sensitivity, distance_springiness, drawFunction, getCameraMatrix, getCanvasSizeAndRelativeMouseLocation, lastMouseX, lastMouseY, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, onWheel, rotation_matrix, rotation_sensitivity, rotation_springiness, setDrawCallback, smoothingThreshold, target_distance, target_pitch, target_position, target_roll, target_yaw, translation_sensitivity, translation_springiness, updateCamera, updateCameraInterval;
+  var LEFT_MOUSE_BUTTON, MIDDLE_MOUSE_BUTTON, RIGHT_MOUSE_BUTTON, addRotationMouseInput, addTranslationMouseInput, bindMouseEvents, cameraMouseCapture, canvas, currentMouseX, currentMouseY, currentTouch1, currentTouch2, current_distance, current_pitch, current_position, current_roll, current_yaw, distance_sensitivity, distance_springiness, drawFunction, getCameraMatrix, getCanvasSizeAndRelativeMouseLocation, lastMouseX, lastMouseY, lastTouch1, lastTouch2, limitPitch, max_pitch, min_pitch, onMouseDown, onMouseMove, onMouseUp, onTouchEnd, onTouchMove, onTouchStart, onWheel, rotation_matrix, rotation_sensitivity, rotation_springiness, setDrawCallback, smoothingThreshold, target_distance, target_pitch, target_position, target_roll, target_yaw, translation_sensitivity, translation_springiness, updateCamera, updateCameraInterval;
 
   canvas = null;
 
@@ -89,6 +89,19 @@ Author: Jens G. Magnus
 
   currentMouseY = 0.0;
 
+
+  /*
+  Touch
+   */
+
+  lastTouch1 = vec2.create();
+
+  lastTouch2 = vec2.create();
+
+  currentTouch1 = vec2.create();
+
+  currentTouch2 = vec2.create();
+
   updateCameraInterval = null;
 
   bindMouseEvents = function(element) {
@@ -131,6 +144,7 @@ Author: Jens G. Magnus
   };
 
   onTouchStart = function(ev) {
+    console.log("ASDASD");
     ev.preventDefault();
     if (ev.touches.length === 1) {
       return onMouseDown(ev.touches[0]);
@@ -138,6 +152,7 @@ Author: Jens G. Magnus
   };
 
   onTouchEnd = function(ev) {
+    console.log("ASDASD");
     ev.preventDefault();
     if (ev.touches.length === 1) {
       return onMouseUp(ev.touches[0]);
@@ -145,9 +160,19 @@ Author: Jens G. Magnus
   };
 
   onTouchMove = function(ev) {
+    var deltaTouchDistance;
+    console.log("ASDASD");
     ev.preventDefault();
     if (ev.touches.length === 1) {
-      return onMouseMove(ev.touches[0]);
+      onMouseMove(ev.touches[0]);
+    }
+    if (ev.touches.length >= 2) {
+      deltaTouchDistance = vec2.distance(lastTouch1, lastTouch2) - vec2.distance(currentTouch1, currentTouch2);
+      target_distance += deltaTouchDistance * distance_sensitivity;
+      target_distance = Math.max(target_distance, 0.0);
+      if (!updateCameraInterval) {
+        return updateCameraInterval = setInterval(updateCamera, 15);
+      }
     }
   };
 

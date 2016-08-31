@@ -57,6 +57,14 @@ lastMouseY = 0.0
 currentMouseX = 0.0
 currentMouseY = 0.0
 
+###
+Touch
+###
+lastTouch1 = vec2.create()
+lastTouch2 = vec2.create()
+currentTouch1 = vec2.create()
+currentTouch2 = vec2.create()
+
 updateCameraInterval = null
 
 bindMouseEvents = (element) ->
@@ -88,17 +96,26 @@ getCanvasSizeAndRelativeMouseLocation = (ev) ->
     { width: width, height: height, x: x, y: y }
 
 onTouchStart = (ev) ->
+  console.log "ASDASD"
   ev.preventDefault()
   if ev.touches.length == 1
       onMouseDown ev.touches[0]
 onTouchEnd = (ev) ->
+  console.log "ASDASD"
   ev.preventDefault()
   if ev.touches.length == 1
       onMouseUp ev.touches[0]
 onTouchMove = (ev) ->
+  console.log "ASDASD"
   ev.preventDefault()
   if ev.touches.length == 1
       onMouseMove ev.touches[0]
+  if ev.touches.length >= 2
+    deltaTouchDistance  = vec2.distance(lastTouch1, lastTouch2) - vec2.distance(currentTouch1, currentTouch2)
+    target_distance +=  deltaTouchDistance * distance_sensitivity
+    target_distance = Math.max target_distance, 0.0
+    unless updateCameraInterval
+      updateCameraInterval = setInterval updateCamera, 15
 
 onWheel = (ev) ->
     ev.preventDefault()
