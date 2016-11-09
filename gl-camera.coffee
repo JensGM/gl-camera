@@ -1,3 +1,4 @@
+`import {mat4, vec2, vec3, quat} from 'gl-matrix'`
 
 ###
 Author: Jens G. Magnus
@@ -8,21 +9,21 @@ drawFunction = null
 
 cameraMouseCapture = off
 
-smoothingThreshold = 0.00001
+smoothingThreshold = 0.0001
 
 ###
 Distance
 ###
-distance_springiness = 20
-distance_sensitivity = 0.015
-current_distance = 6.0
-target_distance = 6.0
+distance_springiness = 50
+distance_sensitivity = 0.005
+current_distance = 600
+target_distance = 600
 
 ###
 Translation
 ###
 translation_springiness = 15
-translation_sensitivity = 0.015
+translation_sensitivity = 0.005
 current_position = vec3.create()
 target_position = vec3.create()
 
@@ -36,15 +37,22 @@ limitPitch = true
 min_pitch = -Math.PI / 2.0
 max_pitch = Math.PI / 2.0
 
-current_pitch = 0.0
-current_yaw = 0.0
+current_pitch = 0.35
+current_yaw = -0.35
 current_roll = 0.0
 
-target_pitch = 0.0
-target_yaw = 0.0
+target_pitch = 0.35
+target_yaw = -0.35
 target_roll = 0.0
 
-rotation_matrix = mat4.create()
+rotation_matrix = (() =>
+    qy = quat.create()
+    qp = quat.create()
+    quat.rotateZ qy, qy, -current_yaw
+    quat.rotateX qp, qp, current_pitch
+    qc = quat.multiply quat.create(), qy, qp
+    return mat4.fromQuat mat4.create(), qc
+)()
 
 ###
 Mouse
@@ -130,7 +138,7 @@ onTouchMove = (ev) ->
 
     # Distane
     deltaTouchDistance  = vec2.distance(lastTouch1, lastTouch2) - vec2.distance(currentTouch1, currentTouch2)
-    target_distance +=  deltaTouchDistance * distance_sensitivity * 2.0
+    target_distance +=  deltaTouchDistance * distance_sensitivity * current_distance * 2.0
     target_distance = Math.max target_distance, 0.0
 
     # Translation
@@ -148,7 +156,7 @@ onTouchMove = (ev) ->
 
 onWheel = (ev) ->
     ev.preventDefault()
-    target_distance += ev.deltaY * distance_sensitivity
+    target_distance += ev.deltaY * distance_sensitivity * Math.max(current_distance, 5.0)
     target_distance = Math.max target_distance, 0.0
     unless updateCameraInterval
       updateCameraInterval = setInterval updateCamera, 15
@@ -187,7 +195,7 @@ addRotationInput = (x, y) ->
      target_pitch = Math.min(Math.max(target_pitch, min_pitch), max_pitch)
 
 addTranslationInput = (x, y) ->
-    deltaPosition = vec3.fromValues x * translation_sensitivity, 0.0, y * translation_sensitivity
+    deltaPosition = vec3.fromValues x * translation_sensitivity * current_distance, 0.0, y * translation_sensitivity * current_distance
     inverse_rotation_matrix = mat4.invert mat4.create(), rotation_matrix
     deltaPosition = vec3.transformMat4 vec3.create(), deltaPosition, rotation_matrix
     vec3.add target_position, target_position, deltaPosition
@@ -234,19 +242,32 @@ updateCamera = (deltaTime) ->
   done
 
 getCameraMatrix = () ->
-  aspectRatio = canvas.width / canvas.height
+    aspectRatio = canvas.width / canvas.height
 
-  eye = vec3.transformMat4(vec3.create(), vec3.fromValues(0,current_distance,0), rotation_matrix)
-  vec3.add eye, eye, current_position
-  center = vec3.fromValues(0,0,0)
-  vec3.add center, center, current_position
-  up = vec3.transformMat4(vec3.create(), vec3.fromValues(0,0,1), rotation_matrix)
+    eye = vec3.transformMat4(vec3.create(), vec3.fromValues(0,current_distance,0), rotation_matrix)
+    vec3.add eye, eye, current_position
+    center = vec3.fromValues(0,0,0)
+    vec3.add center, center, current_position
+    up = vec3.transformMat4(vec3.create(), vec3.fromValues(0,0,1), rotation_matrix)
 
-  V = mat4.lookAt mat4.create(), eye, center, up
-  P = mat4.perspective mat4.create(), 70, aspectRatio, 0.01, 100.0 + target_distance
-  mat4.multiply mat4.create(), P, V
+    V = mat4.lookAt mat4.create(), eye, center, up
+    P = mat4.perspective mat4.create(), 70, aspectRatio, 0.01, 512.0 + current_distance * 2
+    mat4.multiply mat4.create(), P, V
 
-window.glCamera =
+getViewMatrix = () ->
+    eye = vec3.transformMat4(vec3.create(), vec3.fromValues(0,current_distance,0), rotation_matrix)
+    vec3.add eye, eye, current_position
+    center = vec3.fromValues(0,0,0)
+    vec3.add center, center, current_position
+    up = vec3.transformMat4(vec3.create(), vec3.fromValues(0,0,1), rotation_matrix)
+
+    V = mat4.lookAt mat4.create(), eye, center, up
+    V
+
+glCamera =
   bindMouseEvents: bindMouseEvents
   setDrawCallback: setDrawCallback
   getCameraMatrix: getCameraMatrix
+  getViewMatrix: getViewMatrix
+
+`export default glCamera`
